@@ -60,16 +60,19 @@ def get_categorized_applies(workspace_id):
 def get_workspace_resources(workspace_id):
     url = f'{api_base_url}/workspaces/{workspace_id}/resources'
     unique_resource_ids = set()
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        resources = response.json()['data']
-        for resource in resources:
-            if resource['type'] == 'resources':
-                unique_resource_ids.add(resource['id'])
-        return len(unique_resource_ids)
-    else:
-        print(f'Error fetching workspace resources: {response.status_code}')
-        return None
+    while url:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            resources = data['data']
+            for resource in resources:
+                if resource['type'] == 'resources':
+                    unique_resource_ids.add(resource['id'])
+            url = data['links']['next'] if 'next' in data['links'] else None
+        else:
+            print(f'Error fetching workspace resources: {response.status_code}')
+            return None
+    return len(unique_resource_ids)
 
 def write_to_csv(workspaces_data, total_resources, total_applies_per_month):
     with open('terraform_metrics.csv', mode='w', newline='') as file:
